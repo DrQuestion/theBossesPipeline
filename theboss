@@ -1,0 +1,36 @@
+#!/bin/bash
+#computes also times of execution of the various sections
+#traces an eventual summary of the analysis results, and puts together times for the overall analysis among server and local analysis
+times_file="$HOME/Documents/project/theboss_times.txt"
+times_definitive="$HOME/Documents/project/times.txt"
+echo "analysis phase	time required" > $times_file
+
+start=`date +%s`
+echo "bulding special vulcano plot..."
+Rscript plotte.R $HOME/Documents/project/server/analysis/results/results.table "V-CON vs. V-LHX6"
+echo "done"
+end=`date +%s`
+runtime=$((end-start))
+echo "plotte.R	$runtime s" >> $times_file
+
+start=`date +%s`
+echo "analysing functional enrichment of upregulated genes..."
+Rscript fe_analyse.R $HOME/Documents/project/server/analysis/results/upregulated.table "FEA_of_upregulated_genes"
+echo "done"
+end=`date +%s`
+runtime=$((end-start))
+echo "fe_analyser.R (up)	$runtime s" >> $times_file
+
+start=`date +%s`
+echo "analysing functional enrichment of downregulated genes..."
+Rscript fe_analyse.R $HOME/Documents/project/server/analysis/results/downregulated.table "FEA_of_downregulated_genes"
+echo "done"
+end=`date +%s`
+runtime=$((end-start))
+echo "fe_analyser.R (down)	$runtime s" >> $times_file
+
+echo "#on the server" > $times_definitive
+cat "$HOME/Documents/project/server/analysis/bigboss_times.txt" >> $times_definitive
+echo "#on my PC" >> $times_definitive
+tail +2 $times_file >> $times_definitive
+

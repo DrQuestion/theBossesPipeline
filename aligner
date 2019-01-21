@@ -1,0 +1,46 @@
+#!/bin/bash
+
+OPTIND=1
+
+fastqs="$HOME/data/fastqs"
+base_index="$HOME/public/index/hisat_hg38"
+bams_directory="$HOME/data/bams"
+max_threads=16
+
+while getopts ":f:i:d:t:" opt; do
+	case $opt in
+		f)
+			fastqs=$OPTARG
+			;;
+		i)
+			base_index=$OPTARG
+			;;
+		d)
+			bams_directory=$OPTARG
+			;;
+		t)
+			max_threads=$OPTARG
+	esac
+done
+
+if [ -z "$(ls -A $fastqs)" ]; then
+	echo "fastq folder is empty! did you download them actually?" 1>&2
+	exit 1
+fi
+
+gzip -d $fastqs/*
+
+mkdir -p $bams_directory
+
+echo "# mapping ratios" > "$HOME/analysis/mapping_ratios.txt"
+
+for fastq in $(ls -A $fastqs); do
+	echo 	"@$fastq alignment produced:" >> "$HOME/analysis/mapping_ratios.txt"
+	hisat2 -x $base_index -U $fastqs/$fastq -S $bams_directory/${fastq%.*}.sam -p $max_threads --new-summary 2>> "$HOME/analysis/mapping_ratios.txt"
+	samtools view -@ $max_threads -Sb $bams_directory/${fastq%.*}.sam > $bams_directory/${fastq%.*}.bam 
+	rm $bams_directory/*sam
+done
+
+
+
+

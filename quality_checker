@@ -1,0 +1,34 @@
+#!/bin/bash
+OPTIND=1
+
+fastqs="$HOME/data/fastqs/*"
+output_directory="$HOME/analysis/quality_check"
+max_threads=16
+
+while getopts ":f:d:" opt; do
+	case $opt in
+		f)
+			fastqs=$OPTARG
+			;;
+		d)
+			output_directory=$OPTARG
+			;;
+	esac
+done
+
+if [ -z "$(ls -A ${fastqs::-1})" ]; then
+	echo "fastq folder is empty! did you download them actually?" 1>&2
+	exit 1
+fi
+
+
+n_samples=$(ls ${fastqs::-1} | wc -l)
+if [ $n_samples -ge $max_threads ]; then
+	 n_threads=$max_threads
+else
+	n_threads=$n_samples
+fi
+
+mkdir -p $output_directory
+
+fastqc -o $output_directory -t $n_threads -q --noextract $fastqs 

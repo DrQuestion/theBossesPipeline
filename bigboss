@@ -1,0 +1,50 @@
+#!/bin/bash
+#sript executing all in a bulky way
+#computes also times of execution of the various sections and spaces occupied by heaviest files (bams and fastqs)
+table=$1
+conditions=$2
+times_file="$HOME/analysis/bigboss_times.txt"
+spaces_file="$HOME/analysis/bigboss_spaces.txt"
+echo "analysis phase	time required" > $times_file
+echo "folder	space occupied" > $spaces_file
+start=`date +%s`
+echo "downloading read files..."
+./downloader -f $table -s $conditions
+echo "done"
+end=`date +%s`
+runtime=$((end-start))
+echo "downloader	$runtime s" >> $times_file
+
+start=`date +%s`
+echo "checking qualities of read files..."
+./quality_checker
+echo "done"
+end=`date +%s`
+runtime=$((end-start))
+echo "quality_checker	$runtime s" >> $times_file
+
+start=`date +%s`
+echo "aligning read files..."
+./aligner
+echo "done"
+end=`date +%s`
+runtime=$((end-start))
+echo "aligner	$runtime s" >> $times_file
+echo -e $HOME/data/fastqs"\t"$(ls -lh $HOME/data/fastqs | grep total | cut -f2 -d " ") >> $spaces_file
+echo -e $HOME/data/bams"\t"$(ls -lh $HOME/data/bams | grep total | cut -f2 -d " ") >> $spaces_file
+
+start=`date +%s`
+echo "counting features..."
+./counter
+echo "done"
+end=`date +%s`
+runtime=$((end-start))
+echo "counter	$runtime s" >> $times_file
+
+start=`date +%s`
+echo "analysing genes differential expression..."
+Rscript de_analyse.R $HOME/data/counts/counts.table $conditions
+echo "done"
+end=`date +%s`
+runtime=$((end-start))
+echo "de_analyse.R	$runtime s" >> $times_file

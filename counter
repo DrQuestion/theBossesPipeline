@@ -1,0 +1,48 @@
+#!/bin/bash
+
+OPTIND=1
+
+bams_directory="$HOME/data/bams"
+annotation_directory="$HOME/public/genome/GCF_000001405.38_GRCh38.p12_genomic.gff"
+counts_directory="$HOME/data/counts/"
+max_threads=16
+
+while getopts ":f:a:t:" opt; do
+	case $opt in
+		f)
+			bams_directory=$OPTARG
+			;;
+		a)
+			annotation_directory=$OPTARG
+			;;
+		d)
+			counts_directory=$OPTARG
+			;;
+		t)
+			max_threads=$OPTARG
+	esac
+done
+
+if [ -z "$(ls -A $bams_directory)" ]; then
+	echo "bams folder is empty! have you used the aligner actually?" 1>&2
+	exit 1
+fi
+
+mkdir -p $counts_directory
+
+featureCounts -t exon -g gene -a $annotation_directory -o $counts_directory/counts.txt -T $max_threads $bams_directory/*.bam
+
+cut -f 1,7- $counts_directory/counts.txt | tail +2 > $counts_directory/counts.temp
+
+IFS=$'\t' read -a header <<< $(head -n 1 $counts_directory/counts.temp)
+new_header=(${header[0]})
+for ((n=1; n<=${#header[@]}; n++)); do
+	s=${header[n]##*/}
+	new_header+=(${s%.*})
+done
+
+IFS=$'\t' ; echo "${new_header[*]}" > $counts_directory/counts.table
+tail +2 $counts_directory/counts.temp >> $counts_directory/counts.table
+rm $counts_directory/counts.temp
+
+
